@@ -1,7 +1,6 @@
 package edu.marmara.stockmarketdatacollector;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,9 +12,12 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
-public class HelloApplication extends Application {
+public class Main extends Application {
     @Override
     public void start(Stage stage) throws IOException {
+
+        SeleniumAgent seleniumAgent = new SeleniumAgent();
+
         AnchorPane anchorPane = new AnchorPane();
         Scene scene = new Scene(anchorPane);
         anchorPane.setStyle("-fx-background-color: #2ada72");
@@ -27,8 +29,6 @@ public class HelloApplication extends Application {
         label.setLayoutX(30);
         label.setLayoutY(60);
         anchorPane.getChildren().add(label);
-
-
 
         TextField stockNameTextField = new TextField();
         stockNameTextField.setPrefWidth(200);
@@ -46,6 +46,7 @@ public class HelloApplication extends Application {
         button.setText("Get Prices");
         button.setOnAction(actionEvent -> {
             System.out.println(stockNameTextField.getText());
+            seleniumAgent.createCsvFileForGivenStock(stockNameTextField.getText());
         });
         anchorPane.getChildren().add(button);
 
