@@ -11,7 +11,9 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.io.FileWriter;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 
 public class SeleniumAgent {
@@ -22,11 +24,15 @@ public class SeleniumAgent {
 
     public SeleniumAgent() {
         ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.addArguments("--headless");
+        //chromeOptions.addArguments("--no-sandbox");
+        //chromeOptions.addArguments("--headless");
+        //chromeOptions.addArguments("disable-gpu");
+        //chromeOptions.addArguments("window-size=1400,2100");
         //WebDriver driver = new ChromeDriver(chromeOptions);
-        this.driver = new ChromeDriver();
+        //chromeOptions.addArguments("USER AGENT");
+        this.driver = new ChromeDriver(chromeOptions);
         WebDriverManager.chromedriver().setup();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(3000));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
         driver.get("https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx");
     }
 
@@ -71,7 +77,8 @@ public class SeleniumAgent {
         WebElement yearButtonElement = driver.findElement(yearButton);
 
 
-        for (int index = 0; index < 20 * 12; index++) {
+        int numberOfYears = 20;
+        for (int index = 0; index < numberOfYears * 12; index++) {
             By previousMonthButton = By.xpath("//div[@title='Previous month']");
             wait.until(ExpectedConditions.elementToBeClickable(previousMonthButton));
             WebElement previousMonthButtonElement = driver.findElement(previousMonthButton);
@@ -91,7 +98,8 @@ public class SeleniumAgent {
 
         wait.until(ExpectedConditions.invisibilityOfElementLocated(loadingBar));
 
-        this.getStockNamesAndHeader();
+        String[][] stockNamesAndHeader = this.getStockNamesAndHeader();
+        this.writeCsvFile(stockNamesAndHeader, stockCodeName);
     }
 
     public String[][] getStockNamesAndHeader() {
@@ -100,28 +108,62 @@ public class SeleniumAgent {
         wait.until(ExpectedConditions.elementToBeClickable(stockRecordDate));
         List<WebElement> stockRecordDateElements = driver.findElements(stockRecordDate);
         int numberOfResults = stockRecordDateElements.size();
-        stockNamesAndHeader = new String[numberOfResults + 1][13];
-        By dataField = By.xpath("//td[@class='text-right']");
-        wait.until(ExpectedConditions.elementToBeClickable(dataField));
-        List<WebElement> dataFieldElements = driver.findElements(dataField);
+        int numberOfColumns = 13;
+        stockNamesAndHeader = new String[numberOfResults][numberOfColumns];
         for (int row = 0; row < numberOfResults; row++) {
             stockNamesAndHeader[row][0] = stockRecordDateElements.get(row).getText();
             for (int column = 1; column < 13; column++) {
-                stockNamesAndHeader[row][column] = dataFieldElements.get(row * 12 + column - 1).getText();
+                By dataField = By.xpath("(//td[@class='text-right'])[" + (row * 12 + column) + "]");
+                wait.until(ExpectedConditions.elementToBeClickable(dataField));
+                WebElement dataFieldElement = driver.findElement(dataField);
+                stockNamesAndHeader[row][column] = dataFieldElement.getText().replace(",", ".");
+                if (stockNamesAndHeader[row][column].equals("")) {
+                    stockNamesAndHeader[row][column] = "0";
+                }
             }
-        }
-
-        //temp
-        for (int row = 0; row < numberOfResults; row++) {
-            for (int column = 0; column < 13; column++) {
-                System.out.print(stockNamesAndHeader[row][column] + " ");
-            }
-            System.out.println();
+            System.out.println("row: " + row + "total row: " + numberOfResults + " %: " + (row * 100 / numberOfResults));
         }
         return stockNamesAndHeader;
     }
 
-    public void writeCsvFile(String[][] stockNamesAndHeader) {
+    public void writeCsvFile(String[][] stockNamesAndHeader, String stockName) {
+        System.out.println("number of rows: " + stockNamesAndHeader.length + " number of columns: " + stockNamesAndHeader[0].length);
+        try {
+            FileWriter csvWriter = new FileWriter(stockName + LocalDate.now() + "stockNamesAndHeader.csv");
+            //adding columns
+            String[] headers = new String[]{"Tarih", "Kapanis", "Min", "Max", "Aof", "Hacim",
+                    "Sermaye", "USDTRY", "Bist100", "Piyasa degeri (mn Tl)", "Piyasa degeri (mn USD)",
+                    "Halka acik PD (mn Tl)", "Halka acik PD (mn USD)", "sonuc"};
+            for (String column : headers) {
+                csvWriter.append(column);
+                csvWriter.append(",");
+            }
+            csvWriter.append("\n");
 
+            for (int row = 0; row < stockNamesAndHeader.length; row++) {
+                for (int column = 0; column < stockNamesAndHeader[0].length; column++) {
+                    csvWriter.append(stockNamesAndHeader[row][column]);
+                    csvWriter.append(",");
+                }
+                //adding result
+                if (row < 5) {
+                    csvWriter.append("0");
+                } else {
+                    double lastPrice = Double.parseDouble(stockNamesAndHeader[row][1].replace(",", "."));
+                    double firstPrice = Double.parseDouble(stockNamesAndHeader[row - 5][1].replace(",", "."));
+                    double result = (lastPrice - firstPrice) / firstPrice * 100;
+                    if (result > 5) {
+                        csvWriter.append("1");
+                    } else {
+                        csvWriter.append("0");
+                    }
+                }
+                csvWriter.append("\n");
+            }
+            csvWriter.flush();
+            csvWriter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
