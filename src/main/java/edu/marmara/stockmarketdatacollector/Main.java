@@ -46,7 +46,10 @@ public class Main extends Application {
         button.setText("Get Prices");
         button.setOnAction(actionEvent -> {
             System.out.println(stockNameTextField.getText());
-            seleniumAgent.createCsvFileForGivenStock(stockNameTextField.getText());
+            //seleniumAgent.createCsvFileForGivenStock(stockNameTextField.getText());
+            seleniumAgent.stockCode = stockNameTextField.getText();
+            Thread thread = new Thread(seleniumAgent);
+            thread.start();
         });
         anchorPane.getChildren().add(button);
 

@@ -1,10 +1,7 @@
 package edu.marmara.stockmarketdatacollector;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
@@ -16,11 +13,19 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
-public class SeleniumAgent {
+public class SeleniumAgent implements Runnable {
+
 
     WebDriver driver;
 
     WebDriverWait wait;
+
+    String stockCode;
+
+    @Override
+    public void run() {
+        this.createCsvFileForGivenStock(stockCode);
+    }
 
     public SeleniumAgent() {
         ChromeOptions chromeOptions = new ChromeOptions();
@@ -33,10 +38,13 @@ public class SeleniumAgent {
         this.driver = new ChromeDriver(chromeOptions);
         WebDriverManager.chromedriver().setup();
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-        driver.get("https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx");
+        //driver.switchTo().newWindow(WindowType.TAB);
+        //driver.get("https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx");
     }
 
     public void createCsvFileForGivenStock(String stockCodeName) {
+        driver.switchTo().newWindow(WindowType.TAB);
+        driver.get("https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx");
         Actions actions = new Actions(driver);
         By chosenStockBar = By.xpath("//span[@aria-labelledby='select2-ctl00_ctl58_g_0d19e9f2_2afd_4e5a_9a92_57c4ab45c57a_ctl00_ddlHisseSec-container']");
         wait.until(ExpectedConditions.elementToBeClickable(chosenStockBar));
@@ -136,7 +144,9 @@ public class SeleniumAgent {
                     "Halka acik PD (mn Tl)", "Halka acik PD (mn USD)", "sonuc"};
             for (String column : headers) {
                 csvWriter.append(column);
-                csvWriter.append(",");
+                if (!column.equals(headers[headers.length - 1])) {
+                    csvWriter.append(",");
+                }
             }
             csvWriter.append("\n");
 
@@ -152,7 +162,7 @@ public class SeleniumAgent {
                     double lastPrice = Double.parseDouble(stockNamesAndHeader[row][1].replace(",", "."));
                     double firstPrice = Double.parseDouble(stockNamesAndHeader[row - 5][1].replace(",", "."));
                     double result = (lastPrice - firstPrice) / firstPrice * 100;
-                    if (result > 5) {
+                    if (result < -5) {
                         csvWriter.append("1");
                     } else {
                         csvWriter.append("0");
