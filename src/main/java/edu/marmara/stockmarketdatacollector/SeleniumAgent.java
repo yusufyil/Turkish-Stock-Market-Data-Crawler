@@ -29,10 +29,10 @@ public class SeleniumAgent implements Runnable {
 
     public SeleniumAgent() {
         ChromeOptions chromeOptions = new ChromeOptions();
-        //chromeOptions.addArguments("--no-sandbox");
-        //chromeOptions.addArguments("--headless");
-        //chromeOptions.addArguments("disable-gpu");
-        //chromeOptions.addArguments("window-size=1400,2100");
+        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--headless");
+        chromeOptions.addArguments("disable-gpu");
+        chromeOptions.addArguments("window-size=1400,2100");
         //WebDriver driver = new ChromeDriver(chromeOptions);
         //chromeOptions.addArguments("USER AGENT");
         this.driver = new ChromeDriver(chromeOptions);
@@ -61,6 +61,7 @@ public class SeleniumAgent implements Runnable {
                 .sendKeys(Keys.ENTER)
                 .perform();
 
+        System.out.println("INFO: waiting for loading bar.");
         By loadingBar = By.xpath("//span[@class='loader']");
         wait.until(ExpectedConditions.invisibilityOfElementLocated(loadingBar));
 
@@ -80,12 +81,8 @@ public class SeleniumAgent implements Runnable {
         WebElement startDateElement = driver.findElement(startDate);
         startDateElement.click();
 
-        By yearButton = By.xpath("(//select[@title='Select a year'])[1]");//
-        wait.until(ExpectedConditions.elementToBeClickable(yearButton));
-        WebElement yearButtonElement = driver.findElement(yearButton);
-
-
-        int numberOfYears = 20;
+        System.out.println("INFO: choosing start date.");
+        int numberOfYears = 10;
         for (int index = 0; index < numberOfYears * 12; index++) {
             By previousMonthButton = By.xpath("//div[@title='Previous month']");
             wait.until(ExpectedConditions.elementToBeClickable(previousMonthButton));
@@ -104,8 +101,10 @@ public class SeleniumAgent implements Runnable {
         WebElement buttonElement = driver.findElement(button);
         buttonElement.click();
 
+        System.out.println("INFO: waiting for loading requested data.");
         wait.until(ExpectedConditions.invisibilityOfElementLocated(loadingBar));
 
+        System.out.println("INFO: creating csv file.");
         String[][] stockNamesAndHeader = this.getStockNamesAndHeader();
         this.writeCsvFile(stockNamesAndHeader, stockCodeName);
     }
@@ -118,13 +117,18 @@ public class SeleniumAgent implements Runnable {
         int numberOfResults = stockRecordDateElements.size();
         int numberOfColumns = 13;
         stockNamesAndHeader = new String[numberOfResults][numberOfColumns];
+
+        By dataFieldsBy = By.xpath("//td[@class='text-right']");
+        wait.until(ExpectedConditions.elementToBeClickable(dataFieldsBy));
+        List<WebElement> dataFields = driver.findElements(dataFieldsBy);
         for (int row = 0; row < numberOfResults; row++) {
             stockNamesAndHeader[row][0] = stockRecordDateElements.get(row).getText();
             for (int column = 1; column < 13; column++) {
-                By dataField = By.xpath("(//td[@class='text-right'])[" + (row * 12 + column) + "]");
-                wait.until(ExpectedConditions.elementToBeClickable(dataField));
-                WebElement dataFieldElement = driver.findElement(dataField);
-                stockNamesAndHeader[row][column] = dataFieldElement.getText().replace(",", ".");
+                //By dataField = By.xpath("(//td[@class='text-right'])[" + (row * 12 + column) + "]");
+                //wait.until(ExpectedConditions.elementToBeClickable(dataField));
+                //WebElement dataFieldElement = driver.findElement(dataField);
+                //stockNamesAndHeader[row][column] = dataFieldElement.getText().replace(",", ".");
+                stockNamesAndHeader[row][column] = dataFields.get(row * 12 + column - 1).getText().replace(",", ".");
                 if (stockNamesAndHeader[row][column].equals("")) {
                     stockNamesAndHeader[row][column] = "0";
                 }
