@@ -124,10 +124,6 @@ public class SeleniumAgent implements Runnable {
         for (int row = 0; row < numberOfResults; row++) {
             stockNamesAndHeader[row][0] = stockRecordDateElements.get(row).getText();
             for (int column = 1; column < 13; column++) {
-                //By dataField = By.xpath("(//td[@class='text-right'])[" + (row * 12 + column) + "]");
-                //wait.until(ExpectedConditions.elementToBeClickable(dataField));
-                //WebElement dataFieldElement = driver.findElement(dataField);
-                //stockNamesAndHeader[row][column] = dataFieldElement.getText().replace(",", ".");
                 stockNamesAndHeader[row][column] = dataFields.get(row * 12 + column - 1).getText().replace(",", ".");
                 if (stockNamesAndHeader[row][column].equals("")) {
                     stockNamesAndHeader[row][column] = "0";
